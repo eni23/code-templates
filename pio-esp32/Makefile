@@ -1,30 +1,28 @@
 MONITOR_BAUD		= 115200
 SERIAL_DEVICE		= /dev/ttyUSB*
 
-.PHONY: all inotify-watch-upload monitor-loop
+.PHONY: all upload clean program uploadfs find-serial find-monitor-baud
 
 all:
 	platformio -f -c vim run
 
-upload: monitor-close
-	platformio -f -c vim run --target upload --verbose
-
-upload-reopen-monitor: all upload monitor-notify-done
+upload:
+	pio run --target upload
 
 clean:
-	platformio -f -c vim run --target clean --verbose
+	platformio -f -c vim run --target clean 
 
 program:
-	platformio -f -c vim run --target program --verbose
+	platformio -f -c vim run --target program 
 
 uploadfs:
-	platformio -f -c vim run --target uploadfs --verbose
+	platformio -f -c vim run --target uploadfs
 
-update: --verbose
-	platformio -f -c vim update
+update:
+	pio run -t update
 
 inotify-watch-upload:
-	-tools/inotify-upload.sh lib/TFT_ST7735/_usr/ src/
+	-tools/inotify-upload.sh src/
 
 find-serial:
 	ls -1 $(SERIAL_DEVICE)
@@ -33,14 +31,8 @@ find-serial:
 find-monitor-baud:
 	$(eval MONITOR_BAUD=$(shell tools/config-value.sh SERIAL_BAUD ))
 
-monitor: find-monitor-baud find-serial
-	tools/monitor.sh open $(USBTTY) $(MONITOR_BAUD)
+monitor: find-monitor-baud
+	@pio device monitor --baud $(MONITOR_BAUD) --raw --quiet --no-reconnect
 
-monitor-close:
-	tools/monitor.sh close
-
-monitor-loop: find-monitor-baud find-serial
-	-tools/monitor.sh loop $(USBTTY) $(MONITOR_BAUD)
-
-monitor-notify-done:
-	tools/monitor.sh notify-done
+screen-monitor: find-serial find-monitor-baud
+	screen $(USBTTY) $(MONITOR_BAUD)
